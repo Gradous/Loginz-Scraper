@@ -9,8 +9,7 @@ import urllib2
 """
 Globals
 """
-#USER_AGENT = 'Loginz-Scraper1.0 (github.com/Gradous/Loginz-Scraper)'
-USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
+USER_AGENT = 'Loginz-Scraper1.0 (github.com/Gradous/Loginz-Scraper)'
 
 """
 loginz.org has multiple pages to scrape
