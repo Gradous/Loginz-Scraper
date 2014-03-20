@@ -9,36 +9,67 @@ import urllib2
 """
 Globals
 """
-USER_AGENT = 'Loginz-Scraper1.0 (github.com/Gradous/Loginz-Scraper)'
-SCRAPED_SET = set() # contains tuples of (user, pass, rating) to dup check
-NO_RESULT = u'Не найдено' # Russian is neat
+#USER_AGENT = 'Loginz-Scraper1.0 (github.com/Gradous/Loginz-Scraper)'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64)'
+
+"""
+loginz.org has multiple pages to scrape
+"""
+def page_scrape(webpage):
+	result_set = set()
+	results = BeautifulSoup(webpage).findAll(class_='account')
+	user, passw, rating = '', '', ''
+	for r in results:
+		counter = 0
+		acc_div = BeautifulSoup(str(r)).find(id='accparam')
+		if not acc_div:
+			return None
+		# actual data found here
+		for c in acc_div.children:
+			if len(str(c).strip()):
+				# username is first
+				if counter == 0:
+					user = unicode(c.contents[0])
+				# password is second
+				elif counter == 1:
+					passw = unicode(c.contents[0])
+				# third is a comment to ignore
+				elif counter == 2:
+					pass
+				# rating is fourth
+				else:
+					rate_soup = BeautifulSoup(str(acc_div)).find(class_='votes_count')
+					rating = unicode(rate_soup.contents[0])
+				counter += 1
+		result_set.add((user, passw, rating + "%"))
+	return result_set
 
 """
 Main scraping/spidering function
 """
 def scrape(url):
-
-	# loginz.org has multiple pages
-	def page_scrape(webpage):
-		result_check = BeautifulSoup(webpage).findAll(NO_RESULT)
-		if not result_check:
-			return False
-		return True
+	scraped_set = set()
 	try:
 		page_count = 1
+		last_set = set()
 		# loginz.org will allow for infinite "page numbers" to be placed in the
 		# URL, but it will simply return the actual last page for each. This
-		# loop will break when a duplicate account is detected in the set
-		# (page_scrape returns False)
+		# loop will break when we reach duplicate pages (two same returns)
 		while(page_count):
 			req_url = 'http://loginz.org/view/' + url + '/' + str(page_count)
 			loginz_req = urllib2.Request(req_url, 
 				headers={'User-agent' : USER_AGENT})
 			loginz_response = urllib2.urlopen(loginz_req)
-			if not page_scrape(loginz_response.read()):
+			ret_set = page_scrape(loginz_response.read())
+			if not ret_set: # no results for site
+				break
+			elif ret_set == last_set: # same result, end of searching
 				break
 			loginz_response.close()
+			# update state variables
 			page_count += 1
+			last_set = ret_set
+			scraped_set |= ret_set
 
 		# final close
 		loginz_response.close()
@@ -48,13 +79,13 @@ def scrape(url):
 		passwords = []
 		rates = []
 
-		for s in SCRAPED_SET:
+		for s in scraped_set:
 			usernames.append(s[0])
 			passwords.append(s[1])
 			rates.append(s[2])
 
 		# return the list of tuples for later parsing
-		return zip(usernames, passwords, rates, votes, ages)
+		return zip(usernames, passwords, rates)
 	except urllib2.HTTPError, e:
 		print "Error code: ", e.code
 		# in the odd case of 404, keep going
