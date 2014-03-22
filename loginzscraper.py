@@ -13,11 +13,11 @@ USER_AGENT = 'Loginz-Scraper1.0 (github.com/Gradous/Loginz-Scraper)'
 
 """
 loginz.org has multiple pages to scrape
+Returns a tuple of lists, (users, passwords, ratings)
 """
 def page_scrape(webpage):
-	result_set = set()
 	results = BeautifulSoup(webpage).findAll(class_='account')
-	user, passw, rating = '', '', ''
+	user, passw, rating = [], [], []
 	for r in results:
 		counter = 0
 		acc_div = BeautifulSoup(str(r)).find(id='accparam')
@@ -28,29 +28,29 @@ def page_scrape(webpage):
 			if len(str(c).strip()):
 				# username is first
 				if counter == 0:
-					user = unicode(c.contents[0])
+					user.append(c.contents[0])
 				# password is second
 				elif counter == 1:
-					passw = unicode(c.contents[0])
+					passw.append(c.contents[0])
 				# third is a comment to ignore
 				elif counter == 2:
 					pass
 				# rating is fourth
 				else:
 					rate_soup = BeautifulSoup(str(acc_div)).find(class_='votes_count')
-					rating = unicode(rate_soup.contents[0])
+					rating.append(rate_soup.contents[0])
 				counter += 1
-		result_set.add((user, passw, rating + "%"))
-	return result_set
+	return (user, passw, rating)
 
 """
 Main scraping/spidering function
 """
 def scrape(url):
-	scraped_set = set()
+	# Buckets for parsing, will stay empty if no results
+	usernames, passwords, rates = [], [], []
 	try:
 		page_count = 1
-		last_set = set()
+		last_set = ([], [], [])
 		# loginz.org will allow for infinite "page numbers" to be placed in the
 		# URL, but it will simply return the actual last page for each. This
 		# loop will break when we reach duplicate pages (two same returns)
@@ -68,20 +68,13 @@ def scrape(url):
 			# update state variables
 			page_count += 1
 			last_set = ret_set
-			scraped_set |= ret_set
+			# add to data set
+			usernames += ret_set[0]
+			passwords += ret_set[1]
+			rates += ret_set[2]
 
 		# final close
 		loginz_response.close()
-
-		# Buckets for parsing, will stay empty if no results
-		usernames = []
-		passwords = []
-		rates = []
-
-		for s in scraped_set:
-			usernames.append(s[0])
-			passwords.append(s[1])
-			rates.append(s[2])
 
 		# return the list of tuples for later parsing
 		return zip(usernames, passwords, rates)
