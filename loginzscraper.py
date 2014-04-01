@@ -16,11 +16,11 @@ loginz.org has multiple pages to scrape
 Returns a tuple of lists, (users, passwords, ratings)
 """
 def page_scrape(webpage):
-	results = BeautifulSoup(webpage).findAll(class_='account')
+	results = BeautifulSoup(webpage).findAll('div', {'class' : 'account'})
 	user, passw, rating = [], [], []
 	for r in results:
 		counter = 0
-		acc_div = BeautifulSoup(str(r)).find(id='accparam')
+		acc_div = BeautifulSoup(str(r)).find('div', {'id' : 'accparam'})
 		if not acc_div:
 			return None
 		# actual data found here
@@ -36,9 +36,12 @@ def page_scrape(webpage):
 				elif counter == 2:
 					pass
 				# rating is fourth
-				else:
+				elif counter == 3:
 					rate_soup = BeautifulSoup(str(acc_div)).find(class_='votes_count')
-					rating.append(rate_soup.contents[0])
+					if rate_soup:
+						rating.append(rate_soup.contents[0])
+					else:
+						rating.append("#None#")
 				counter += 1
 	return (user, passw, rating)
 
@@ -48,6 +51,7 @@ Main scraping/spidering function
 def scrape(url):
 	# Buckets for parsing, will stay empty if no results
 	usernames, passwords, rates = [], [], []
+	print url
 	try:
 		page_count = 1
 		last_set = ([], [], [])
