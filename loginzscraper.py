@@ -112,9 +112,6 @@ def parse_args():
 	parser = argparse.ArgumentParser(description='Scrape Loginz.org for valid accounts')
 	parser.add_argument('-f', '--file', nargs=1, help='Site list for scraping',
 		default=['alexa_top_1m.csv'])
-	parser.add_argument('-g', '--generate', nargs=1,
-		help="""Use the Alexa list instead and write out working sites
-		to a new file.""")
 	parser.add_argument('-n', '--no-results', action='store_false',
 		help="Don't write results to file")
 	parser.add_argument('-m', '--max-sites', nargs=1, help="Max sites to parse",
@@ -126,30 +123,17 @@ def parse_args():
 		help='Skip to entry X before scraping')
 	return parser.parse_args()
 
-def update_gen_file(gen_file, result_number, url):
-	if gen_file:
-		gen_file.write(str(result_number) + ',' + url + '\n')
-		gen_file.flush()
-		fsync(gen_file)
-
-def report_results(url, result, gen_file, result_num, writeout, log):
+def report_results(url, result, result_num, writeout, log):
 	print url, "has", len(result), "results!"
 	# write out the working sites to a new file?
-	update_gen_file(gen_file, result_num, url)
 	if writeout:
 		write_result(url, result, log)
 
-def main(scrape_file, gen_file, min_wait=1.0, max_wait=3.5, **kwargs):
+def main(scrape_file, min_wait=1.0, max_wait=1.75, **kwargs):
 	# seed for waiting
 	random.seed()
-
-	if gen_file == scrape_file:
-		raise IOError("HEY! Don't use the same file for two things!!!")
-
 	try:
 		with open(scrape_file, 'r') as to_scrape:
-			if (gen_file):
-				genfile = open(gen_file[0], 'w+')
 			site_counter = kwargs['site_counter'] # loop break, default=1
 			result_number = 1 # counter for filtered set
 			for site in to_scrape:
@@ -161,7 +145,7 @@ def main(scrape_file, gen_file, min_wait=1.0, max_wait=3.5, **kwargs):
 					site_result = scrape(url)
 					if site_result:
 						# record the results
-						report_results(url, site_result, gen_file,
+						report_results(url, site_result,
 							result_number, kwargs['writeout'],
 							kwargs['logfile'])
 						result_number += 1
@@ -188,4 +172,4 @@ if __name__ == "__main__":
 	args = parse_args()
 	main(writeout=args.no_results, max_sites=int(args.max_sites[0]),
 		logfile=args.output[0], scrape_file=args.file[0],
-		gen_file=args.generate, site_counter=int(args.skip[0]))
+		site_counter=int(args.skip[0]))
